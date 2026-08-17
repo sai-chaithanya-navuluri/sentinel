@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import dev.sentinel.matching.IncidentMatcher;
 
 import java.time.Instant;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.List;
 public class IncidentController {
 
     private final IncidentService service;
+    private final IncidentMatcher matcher;
 
     public record CreateIncidentRequest(
             String externalId,
@@ -77,4 +79,18 @@ public class IncidentController {
     public IncidentResponse resolve(@PathVariable Long id) {
         return IncidentResponse.from(service.resolve(id));
     }
+
+    @GetMapping("/{id}/similar")
+    public List<SimilarIncidentResponse> similar(@PathVariable Long id) {
+        Incident target = service.get(id);
+        return matcher.findSimilar(target, 5).stream()
+                .map(m -> new SimilarIncidentResponse(
+                        m.incident().getId(),
+                        m.incident().getTitle(),
+                        m.incident().getDescription(),
+                        m.score()))
+                .toList();
+    }
+
+    public record SimilarIncidentResponse(Long id, String title, String description, double score) {}
 }
