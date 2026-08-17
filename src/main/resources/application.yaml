@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: sentinel
+  datasource:
+    url: jdbc:postgresql://localhost:5432/sentinel
+    username: ${DB_USER:sentinel}
+    password: ${DB_PASSWORD:sentinel}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.format_sql: true
+  flyway:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

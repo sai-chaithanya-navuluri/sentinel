@@ -1,0 +1,8 @@
+{
+  "externalId": "PD-001",
+  "title": "DB connection timeout",
+  "description": "payment-svc could not acquire connection after 30s",
+  "serviceName": "payment-service",
+  "severity": "CRITICAL",
+  "occurredAt": "2026-08-17T02:14:00Z"
+}
