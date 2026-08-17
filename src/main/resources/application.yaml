@@ -19,3 +19,5 @@ management:
     web:
       exposure:
         include: health,info,metrics
+sentinel:
+  admin-api-key: ${SENTINEL_ADMIN_API_KEY:}
