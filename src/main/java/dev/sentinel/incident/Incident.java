@@ -49,6 +49,9 @@ public class Incident {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(columnDefinition = "vector(384)")
+    private float[] embedding;
+
     @PrePersist
     void onCreate() {
         Instant now = Instant.now();

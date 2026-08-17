@@ -96,7 +96,7 @@ class IncidentMatchingTest {
         List<IncidentMatch> matches = matcher.findSimilar(target, 5);
 
         assertThat(matches).isNotEmpty();
-        assertThat(matches.getFirst().score()).isGreaterThan(0.5);
+        assertThat(matches.getFirst().combinedScore()).isGreaterThan(0.5);
     }
 
     @Test

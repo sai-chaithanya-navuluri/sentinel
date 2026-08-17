@@ -1,5 +1,8 @@
 package dev.sentinel.matching;
 
+import ai.djl.modality.nlp.embedding.EmbeddingException;
+import dev.sentinel.embedding.CosineSimilarity;
+import dev.sentinel.embedding.EmbeddingService;
 import dev.sentinel.incident.Incident;
 import dev.sentinel.incident.IncidentRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,35 +18,59 @@ public class IncidentMatcher {
 
     private final IncidentRepository repository;
     private final TextNormalizer normalizer;
-    private final SimilarityScorer scorer;
+    private final SimilarityScorer textScorer;
+    private final EmbeddingService embeddingService;
+    private final CosineSimilarity semanticScorer;
 
-    // Below this score, two incidents are considered unrelated rather than a
-    // weak match — an arbitrary-looking number, but see the accompanying test
-    // for what it's actually calibrated against.
-    private static final double MATCH_THRESHOLD = 0.15;
+    private static final double COMBINED_THRESHOLD = 0.20;
 
-    /**
-     * Finds prior incidents whose text is similar to the given incident,
-     * restricted to the same service (a connection-timeout in payment-service
-     * and a connection-timeout in auth-service are not "the same incident"
-     * just because the words overlap).
-     */
+    // Semantic weighted higher: Part 3/4's own measurements showed text
+    // overlap missing paraphrased duplicates that embeddings correctly
+    // surface as related (see IncidentMatchingTest for the documented case).
+    private static final double TEXT_WEIGHT = 0.4;
+    private static final double SEMANTIC_WEIGHT = 0.6;
+
     public List<IncidentMatch> findSimilar(Incident target, int limit) {
-        Set<String> targetTokens = normalizer.tokenize(
-                target.getTitle() + " " + target.getDescription());
+        String targetText = target.getTitle() + " " + target.getDescription();
+        Set<String> targetTokens = normalizer.tokenize(targetText);
+
+        float[] targetEmbedding = null;
+        try {
+            targetEmbedding = embeddingService.embed(targetText);
+        } catch (Exception e) {
+            // Falls through to text-only matching for this request.
+        }
+        final float[] finalTargetEmbedding = targetEmbedding;   // effectively-final for the lambda below
 
         return repository.findByServiceNameOrderByOccurredAtDesc(target.getServiceName())
                 .stream()
                 .filter(candidate -> !candidate.getId().equals(target.getId()))
-                .map(candidate -> {
-                    Set<String> candidateTokens = normalizer.tokenize(
-                            candidate.getTitle() + " " + candidate.getDescription());
-                    double score = scorer.similarity(targetTokens, candidateTokens);
-                    return new IncidentMatch(candidate, score);
-                })
-                .filter(match -> match.score() >= MATCH_THRESHOLD)
-                .sorted(Comparator.comparingDouble(IncidentMatch::score).reversed())
+                .map(candidate -> score(candidate, targetTokens, finalTargetEmbedding))
+                .filter(match -> match.combinedScore() >= COMBINED_THRESHOLD)
+                .sorted(Comparator.comparingDouble(IncidentMatch::combinedScore).reversed())
                 .limit(limit)
                 .toList();
+    }
+
+    private IncidentMatch score(Incident candidate, Set<String> targetTokens, float[] targetEmbedding) {
+        String candidateText = candidate.getTitle() + " " + candidate.getDescription();
+
+        Set<String> candidateTokens = normalizer.tokenize(candidateText);
+        double text = textScorer.similarity(targetTokens, candidateTokens);
+
+        double semantic = 0.0;
+        if (targetEmbedding != null) {
+            try {
+                float[] candidateEmbedding = embeddingService.embed(candidateText);
+                semantic = semanticScorer.similarity(targetEmbedding, candidateEmbedding);
+            } catch (Exception e) {
+                // Embedding failure degrades to text-only scoring for this candidate
+                // rather than failing the whole match request — same boundary
+                // principle as PrometheusAlertAdapter's graceful severity fallback.
+            }
+        }
+
+        double combined = (text * TEXT_WEIGHT) + (semantic * SEMANTIC_WEIGHT);
+        return new IncidentMatch(candidate, text, semantic, combined);
     }
 }

@@ -88,9 +88,18 @@ public class IncidentController {
                         m.incident().getId(),
                         m.incident().getTitle(),
                         m.incident().getDescription(),
-                        m.score()))
+                        m.textScore(),
+                        m.semanticScore(),
+                        m.combinedScore()))
                 .toList();
     }
 
-    public record SimilarIncidentResponse(Long id, String title, String description, double score) {}
+    public record SimilarIncidentResponse(
+            Long id,
+            String title,
+            String description,
+            double textScore,
+            double semanticScore,
+            double combinedScore
+    ) {}
 }
