@@ -1,5 +1,6 @@
 package dev.sentinel.incident;
 
+import dev.sentinel.events.IncidentEventPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,14 +12,23 @@ import java.util.List;
 public class IncidentService {
 
     private final IncidentRepository repository;
+    private final IncidentEventPublisher eventPublisher;
+
 
     @Transactional
     public Incident record(Incident incident) {
+        Incident saved;
         if (incident.getExternalId() != null) {
-            return repository.findByExternalId(incident.getExternalId())
-                    .orElseGet(() -> repository.save(incident));
+            var existing = repository.findByExternalId(incident.getExternalId());
+            if (existing.isPresent()) {
+                return existing.get();  // idempotent — no new event for a duplicate
+            }
+            saved = repository.save(incident);
+        } else {
+            saved = repository.save(incident);
         }
-        return repository.save(incident);
+        eventPublisher.publishCreated(saved);
+        return saved;
     }
 
     @Transactional(readOnly = true)

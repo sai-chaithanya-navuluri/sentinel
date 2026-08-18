@@ -1,0 +1,8 @@
+{
+  "externalId": "KAFKA-TEST-001",
+  "title": "Kafka event pipeline verification",
+  "description": "Testing that incident creation publishes to the incident-events topic",
+  "serviceName": "payment-service",
+  "severity": "HIGH",
+  "occurredAt": "2026-08-18T14:00:00Z"
+}
