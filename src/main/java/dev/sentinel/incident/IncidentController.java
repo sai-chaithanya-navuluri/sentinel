@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import dev.sentinel.matching.IncidentMatcher;
+import dev.sentinel.resolution.ResolutionService;
 
 import java.time.Instant;
 import java.util.List;
@@ -18,6 +19,7 @@ public class IncidentController {
 
     private final IncidentService service;
     private final IncidentMatcher matcher;
+    private final ResolutionService resolutionService;
 
     public record CreateIncidentRequest(
             String externalId,
@@ -80,6 +82,16 @@ public class IncidentController {
         return IncidentResponse.from(service.resolve(id));
     }
 
+    public record SimilarIncidentResponse(
+            Long id,
+            String title,
+            String description,
+            double textScore,
+            double semanticScore,
+            double combinedScore,
+            List<ResolutionService.ResolutionSummary> priorResolutions
+    ) {}
+
     @GetMapping("/{id}/similar")
     public List<SimilarIncidentResponse> similar(@PathVariable Long id) {
         Incident target = service.get(id);
@@ -90,16 +102,8 @@ public class IncidentController {
                         m.incident().getDescription(),
                         m.textScore(),
                         m.semanticScore(),
-                        m.combinedScore()))
+                        m.combinedScore(),
+                        resolutionService.summariesFor(m.incident().getId())))
                 .toList();
     }
-
-    public record SimilarIncidentResponse(
-            Long id,
-            String title,
-            String description,
-            double textScore,
-            double semanticScore,
-            double combinedScore
-    ) {}
 }
