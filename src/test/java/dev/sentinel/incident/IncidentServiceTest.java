@@ -2,24 +2,12 @@ package dev.sentinel.incident;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.*;
 
-@SpringBootTest
-@Testcontainers
-class IncidentServiceTest {
-
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("pgvector/pgvector:pg16");
+class IncidentServiceTest extends dev.sentinel.AbstractIntegrationTest{
 
     @Autowired IncidentService service;
 

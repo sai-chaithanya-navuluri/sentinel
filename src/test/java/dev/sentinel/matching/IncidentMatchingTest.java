@@ -6,11 +6,6 @@ import dev.sentinel.incident.Severity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Instant;
 import java.util.List;
@@ -18,14 +13,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
-@Testcontainers
-class IncidentMatchingTest {
-
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("pgvector/pgvector:pg16");
+class IncidentMatchingTest extends dev.sentinel.AbstractIntegrationTest{
 
     @Autowired IncidentRepository repository;
     @Autowired IncidentMatcher matcher;
