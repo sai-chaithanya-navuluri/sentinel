@@ -69,9 +69,8 @@ Unset by default (open for local development).
   approach first, to have real evidence for where semantic matching was
   actually needed, rather than adding it by default
 - **KRaft over ZooKeeper** — one fewer moving part for the same guarantees
-- **SQLAlchemy... wait, not applicable — JPA/Hibernate with explicit
-  `Long` foreign keys instead of `@ManyToOne`** where full relationship
-  loading isn't needed, avoiding lazy-loading pitfalls
+- **Explicit `Long` foreign keys instead of `@ManyToOne`** where full
+  relationship loading isn't needed, avoiding lazy-loading pitfalls
 - **Graceful degradation at every external boundary** — Prometheus payload
   parsing, embedding computation, LLM calls, Kafka publishing — all fail
   soft, never take down the primary request
