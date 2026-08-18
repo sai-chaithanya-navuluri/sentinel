@@ -30,7 +30,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    tags:
+      application: sentinel
 sentinel:
   admin-api-key: ${SENTINEL_ADMIN_API_KEY:}
   recurrence:

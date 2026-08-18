@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -21,6 +22,7 @@ public class RecurrenceDetector {
     private final IncidentRepository incidentRepository;
     private final ChronicIssueRepository chronicIssueRepository;
     private final TextNormalizer normalizer;
+    private final MeterRegistry meterRegistry;
 
     @Value("${sentinel.recurrence.threshold-count:3}")
     private int thresholdCount;
@@ -52,6 +54,10 @@ public class RecurrenceDetector {
                 flagged++;
             }
         }
+        
+        meterRegistry.counter("sentinel.chronic_issues.flagged").increment(flagged);
+        meterRegistry.gauge("sentinel.incidents.scanned_last_run", recent.size());
+
         return new DetectionResult(recent.size(), grouped.size(), flagged);
     }
 

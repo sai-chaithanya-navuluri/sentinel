@@ -1,12 +1,12 @@
 package dev.sentinel.matching;
 
-import ai.djl.modality.nlp.embedding.EmbeddingException;
 import dev.sentinel.embedding.CosineSimilarity;
 import dev.sentinel.embedding.EmbeddingService;
 import dev.sentinel.incident.Incident;
 import dev.sentinel.incident.IncidentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.Comparator;
 import java.util.List;
@@ -21,6 +21,7 @@ public class IncidentMatcher {
     private final SimilarityScorer textScorer;
     private final EmbeddingService embeddingService;
     private final CosineSimilarity semanticScorer;
+    private final MeterRegistry meterRegistry;
 
     private static final double COMBINED_THRESHOLD = 0.20;
 
@@ -31,6 +32,14 @@ public class IncidentMatcher {
     private static final double SEMANTIC_WEIGHT = 0.6;
 
     public List<IncidentMatch> findSimilar(Incident target, int limit) {
+        return io.micrometer.core.instrument.Timer.builder("sentinel.matching.duration")
+                .description("Time to find similar incidents, including embedding computation")
+                .tag("service", target.getServiceName())
+                .register(meterRegistry)
+                .record(() -> findSimilarInternal(target, limit));
+    }
+
+    private List<IncidentMatch> findSimilarInternal(Incident target, int limit) {
         String targetText = target.getTitle() + " " + target.getDescription();
         Set<String> targetTokens = normalizer.tokenize(targetText);
 

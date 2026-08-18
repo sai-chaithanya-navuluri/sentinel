@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.Map;
 
@@ -14,6 +15,7 @@ import java.util.Map;
 public class LlmClient {
 
     private final RestClient restClient;
+    private final MeterRegistry meterRegistry;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Value("${sentinel.llm.api-key:}")
@@ -25,7 +27,8 @@ public class LlmClient {
     @Value("${sentinel.llm.enabled:false}")
     private boolean enabled;
 
-    public LlmClient() {
+    public LlmClient(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
         this.restClient = RestClient.builder()
                 .baseUrl("https://api.anthropic.com/v1")
                 .build();
@@ -62,9 +65,11 @@ public class LlmClient {
 
             JsonNode root = mapper.readTree(responseBody);
             String text = root.path("content").path(0).path("text").asText(null);
+            meterRegistry.counter("sentinel.llm.calls", "outcome", "success").increment();
             return java.util.Optional.ofNullable(text);
 
         } catch (Exception e) {
+            meterRegistry.counter("sentinel.llm.calls", "outcome", "error").increment();
             log.warn("LLM call failed, degrading to no-suggestion: {}", e.getMessage());
             return java.util.Optional.empty();
         }
