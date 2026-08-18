@@ -21,3 +21,6 @@ management:
         include: health,info,metrics
 sentinel:
   admin-api-key: ${SENTINEL_ADMIN_API_KEY:}
+  recurrence:
+    threshold-count: ${RECURRENCE_THRESHOLD:3}
+    lookback-days: ${RECURRENCE_LOOKBACK_DAYS:30}
