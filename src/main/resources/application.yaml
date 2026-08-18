@@ -36,3 +36,7 @@ sentinel:
   recurrence:
     threshold-count: ${RECURRENCE_THRESHOLD:3}
     lookback-days: ${RECURRENCE_LOOKBACK_DAYS:30}
+  llm:
+    api-key: ${ANTHROPIC_API_KEY:}
+    model: ${SENTINEL_LLM_MODEL:claude-haiku-4-5-20251001}
+    enabled: ${SENTINEL_LLM_ENABLED:false}

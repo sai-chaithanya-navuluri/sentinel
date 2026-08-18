@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import dev.sentinel.matching.IncidentMatcher;
 import dev.sentinel.resolution.ResolutionService;
+import dev.sentinel.assist.AssistService;
 
 import java.time.Instant;
 import java.util.List;
@@ -20,6 +21,7 @@ public class IncidentController {
     private final IncidentService service;
     private final IncidentMatcher matcher;
     private final ResolutionService resolutionService;
+    private final AssistService assistService;
 
     public record CreateIncidentRequest(
             String externalId,
@@ -92,18 +94,27 @@ public class IncidentController {
             List<ResolutionService.ResolutionSummary> priorResolutions
     ) {}
 
+    public record SimilarIncidentsResult(
+            List<SimilarIncidentResponse> matches,
+            String suggestedRootCause  // null if unavailable — see AssistService
+    ) {}
+
     @GetMapping("/{id}/similar")
-    public List<SimilarIncidentResponse> similar(@PathVariable Long id) {
+    public SimilarIncidentsResult similar(@PathVariable Long id) {
         Incident target = service.get(id);
-        return matcher.findSimilar(target, 5).stream()
+        var matches = matcher.findSimilar(target, 5);
+
+        List<SimilarIncidentResponse> responses = matches.stream()
                 .map(m -> new SimilarIncidentResponse(
-                        m.incident().getId(),
-                        m.incident().getTitle(),
-                        m.incident().getDescription(),
-                        m.textScore(),
-                        m.semanticScore(),
-                        m.combinedScore(),
+                        m.incident().getId(), m.incident().getTitle(), m.incident().getDescription(),
+                        m.textScore(), m.semanticScore(), m.combinedScore(),
                         resolutionService.summariesFor(m.incident().getId())))
                 .toList();
+
+        String suggestion = assistService
+                .suggestRootCause(target.getTitle(), target.getDescription(), matches)
+                .orElse(null);
+
+        return new SimilarIncidentsResult(responses, suggestion);
     }
 }
