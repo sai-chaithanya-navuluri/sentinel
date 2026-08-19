@@ -1,75 +1,66 @@
-# React + TypeScript + Vite
+# Sentinel Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The web interface for [Sentinel](../README.md) — a production intelligence
+dashboard that surfaces recurring incidents, resolution history, and
+fix-priority scoring for engineering teams.
 
-Currently, two official plugins are available:
+Built with React, TypeScript, Tailwind CSS, and Vite.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## What it does
 
-## React Compiler
+- **Live incident feed** — real-time view of open incidents with severity,
+  service, and recency
+- **Chronic issue detection** — surfaces patterns that have crossed the
+  recurrence threshold, with a computed Fix Priority score
+- **Incident detail view** — shows semantic/text similarity matches from the
+  backend matcher, prior recorded resolutions, and (when enabled) a grounded
+  LLM-generated root-cause suggestion
+- **Fix Queue** — chronic issues sorted by priority, frequency, or severity
+- **Root Causes** — chronic issues grouped by keyword-based category
+- **Command palette** (⌘K / Ctrl+K) — search incidents, services, and
+  chronic issues from anywhere
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Data honesty
 
-## Expanding the ESLint configuration
+Every number shown is either fetched directly from the backend or derived
+client-side from real fetched data — see `src/lib/deriveMetrics.ts` and
+`src/lib/fixPriority.ts`. Nothing is fabricated. Where the backend doesn't
+yet track something (uptime percentages, deployment correlation, ticket
+ownership), the UI either omits it or clearly labels it as not yet available.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Fix Priority scoring
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+`src/lib/fixPriority.ts` computes a 0–100 urgency score from frequency,
+severity mix, recency, and recurrence span. Weights are named constants at
+the top of the file — safe to retune without touching any component.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Running locally
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Requires the Sentinel backend running on `localhost:8080` (see the
+[main README](../README.md) for setup — `docker compose up` from the repo
+root brings up the full stack including this UI's build target).
 
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Opens on `localhost:5173`, proxying `/api` and `/actuator` requests to the
+backend.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Build
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm run build
 ```
+
+Runs TypeScript type-checking followed by a production Vite build. This is
+the same command CI runs on every push.
+
+## What's not built yet
+
+- "Create Fix" is a labeled placeholder — there's no backend `Fix` entity or
+  ownership-tracking yet
+- Service health status is derived from open/critical incident counts, not
+  real uptime data
+- Root-cause grouping is keyword-based, not a trained classifier
