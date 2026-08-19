@@ -75,8 +75,9 @@ public class Incident {
     }
 
     public void resolve() {
-        if (status == IncidentStatus.RESOLVED) {
-            throw new IllegalStateException("Incident is already resolved");
+        if (status != IncidentStatus.ACKNOWLEDGED) {
+            throw new IllegalStateException(
+                    "Only an ACKNOWLEDGED incident can be resolved; was " + status);
         }
         status = IncidentStatus.RESOLVED;
         resolvedAt = Instant.now();

@@ -47,6 +47,7 @@ class IncidentServiceTest extends dev.sentinel.AbstractIntegrationTest{
     @Test
     void cannot_acknowledge_a_resolved_incident() {
         Incident saved = service.record(sample("PD-103"));
+        service.acknowledge(saved.getId());
         service.resolve(saved.getId());
         assertThatThrownBy(() -> service.acknowledge(saved.getId()))
                 .isInstanceOf(IllegalStateException.class);
