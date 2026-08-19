@@ -3,6 +3,7 @@ package dev.sentinel.recurrence;
 import dev.sentinel.incident.Incident;
 import dev.sentinel.incident.IncidentRepository;
 import dev.sentinel.matching.TextNormalizer;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,6 +14,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,6 +31,13 @@ public class RecurrenceDetector {
 
     @Value("${sentinel.recurrence.lookback-days:30}")
     private int lookbackDays;
+
+    private final AtomicInteger incidentsScannedLastRun = new AtomicInteger();
+
+    @PostConstruct
+    void registerMetrics() {
+        meterRegistry.gauge("sentinel.incidents.scanned_last_run", incidentsScannedLastRun);
+    }
 
     /**
      * Runs automatically every hour. Also, callable directly (see
@@ -56,7 +65,7 @@ public class RecurrenceDetector {
         }
         
         meterRegistry.counter("sentinel.chronic_issues.flagged").increment(flagged);
-        meterRegistry.gauge("sentinel.incidents.scanned_last_run", recent.size());
+        incidentsScannedLastRun.set(recent.size());
 
         return new DetectionResult(recent.size(), grouped.size(), flagged);
     }
