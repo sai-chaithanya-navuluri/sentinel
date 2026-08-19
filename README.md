@@ -13,10 +13,10 @@ recurrence gets re-investigated from scratch.
 
 - **Captures** incidents from webhooks (Prometheus-compatible) or a REST API
 - **Recognizes recurrence** using two complementary techniques:
-    - Text similarity (Jaccard token overlap) — catches near-identical rewording
-    - Semantic embeddings (local, offline ONNX model) — catches paraphrased
-      duplicates that text matching misses (measured: ~0.08 → ~0.29 similarity
-      on a real paraphrase pair — see `docs/` for the full comparison)
+  - Text similarity (Jaccard token overlap) — catches near-identical rewording
+  - Semantic embeddings (local, offline ONNX model) — catches paraphrased
+    duplicates that text matching misses (measured: ~0.08 → ~0.29 similarity
+    on a real paraphrase pair — see `docs/` for the full comparison)
 - **Surfaces prior resolutions** — when a match is found, shows what actually
   fixed it, by whom, and how long it took
 - **Flags chronic issues automatically** — a scheduled job detects when a
@@ -35,7 +35,30 @@ recurrence gets re-investigated from scratch.
 
 Java 21, Spring Boot 3.5, PostgreSQL (with `pgvector`), Kafka (KRaft mode,
 no ZooKeeper), local ONNX embeddings via Deep Java Library — no external AI
-API required for the core system.
+API required for the core system. 34 automated tests (Testcontainers-backed
+integration tests plus fast unit tests), running in CI on every push
+alongside a hardcoded-secret scanning gate.
+
+## Dashboard (UI)
+
+A React, TypeScript, and Tailwind operations dashboard lives in `ui/` —
+live incident feed, chronic issue tracking with a computed Fix Priority
+score, a Fix Queue, a Root Causes view, and a command palette (⌘K / Ctrl+K).
+Every incident's detail view surfaces real matches from the backend matcher,
+prior recorded resolutions, and (when enabled) the grounded LLM suggestion.
+
+See [`ui/README.md`](ui/README.md) for the full breakdown, including exactly
+which numbers are real, which are derived, and which are explicitly labeled
+as not yet available.
+
+```bash
+cd ui
+npm install
+npm run dev
+```
+
+Runs on `localhost:5173`, proxying `/api` and `/actuator` to the backend on
+`:8080`.
 
 ## Running it
 
@@ -76,12 +99,18 @@ Unset by default (open for local development).
   soft, never take down the primary request
 - **Chronic-issue status is preserved across re-detection runs** — a human
   acknowledging an issue isn't silently overwritten by the next scheduled scan
+- **Acknowledge before resolve is enforced** — discovered while building the
+  UI that the original model allowed skipping straight from open to resolved;
+  tightened the lifecycle guard to match how incident response actually works
+- **Fix Priority scoring lives in one isolated, documented function**
+  (`ui/src/lib/fixPriority.ts`) with named, adjustable weights — not
+  scattered magic numbers across components
 
-## What I'd build next
+## What's next
 
 - Persist embeddings (schema is ready — `pgvector` column exists) instead of
   recomputing per request
 - Semantic-similarity-based chronic-issue grouping, not just title-signature
   matching
-- A minimal frontend for the approval/acknowledgment workflows currently
-  only exposed via API
+- A `Fix` entity and ownership tracking to make the Fix Queue's "Create Fix"
+  action real
